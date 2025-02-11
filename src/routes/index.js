@@ -9,7 +9,7 @@ const router = Router();
 
 router.use('/auth' , AuthRoutes);
 router.use('/user' , UserRoutes);
-router.use('/events' , EventRoutes);
+router.use('/event' , EventRoutes);
 
 
 export default router;
