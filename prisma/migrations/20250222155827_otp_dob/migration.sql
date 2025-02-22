@@ -1,0 +1,18 @@
+-- AlterTable
+ALTER TABLE `User` ADD COLUMN `dob` DATETIME(3) NULL,
+    MODIFY `first` VARCHAR(191) NULL;
+
+-- CreateTable
+CREATE TABLE `OTP` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `value` INTEGER NOT NULL,
+    `userId` INTEGER NOT NULL,
+    `expireAt` DATETIME(3) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `OTP_id_key`(`id`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `OTP` ADD CONSTRAINT `OTP_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
