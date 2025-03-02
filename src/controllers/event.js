@@ -9,7 +9,11 @@ export const GetEvents = async (req, res) => {
             include: {
                 tags: true,
                 organizer: true,
-                location: true
+                location: {
+                    include : {
+                        regions : true
+                    }
+                }
             },
             take : 10
         });
