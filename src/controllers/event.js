@@ -57,6 +57,15 @@ export const syncVolunteerConnector = async (req, res) => {
     }
 }
 
+
+export const createEvent = async (req , res) => {
+    try {
+        console.log(req.body);
+    } catch (error) {
+        console.log(error);
+    }
+}
+
 const saveVolunteerEvents = async (events) => {
     const source = await prisma.source.upsert({
         where: { id: 1 },
