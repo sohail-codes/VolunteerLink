@@ -7,6 +7,22 @@ import prisma from "../client.js";
 export const joinEvent = async (req, res) => {
     try {
         var { eventId } = req.body;
+        await prisma.event.update({
+            where : {
+                uuid : eventId
+            },
+            data : {
+                joinedBy : {
+                    connect : {
+                        uuid : req.user.uuid
+                    }
+                }
+            }
+        });
+        return res.status(200).json({
+            status : true,
+            message : "Event Joined Successfully!"
+        })
     } catch (error) {
         console.log(error);
         return res.status(422).json({
@@ -19,6 +35,39 @@ export const joinEvent = async (req, res) => {
 export const GetEvents = async (req, res) => {
     try {
         var events = await prisma.event.findMany({
+            include: {
+                tags: true,
+                organizer: true,
+                location: {
+                    include: {
+                        regions: true
+                    }
+                }
+            },
+            take: 10
+        });
+        return res.status(200).json({
+            status: true,
+            data: events
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(422).json({
+            status: false,
+            message: error.message
+        })
+    }
+}
+export const joinedEvents = async (req, res) => {
+    try {
+        var events = await prisma.event.findMany({
+            where : {
+                joinedBy : {
+                    some : {
+                        uuid : req.user.uuid
+                    }
+                }
+            },
             include: {
                 tags: true,
                 organizer: true,
