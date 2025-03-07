@@ -3,6 +3,19 @@ import prisma from "../client.js";
 
 
 
+
+export const joinEvent = async (req, res) => {
+    try {
+        var { eventId } = req.body;
+    } catch (error) {
+        console.log(error);
+        return res.status(422).json({
+            status: false,
+            message: error.message
+        })
+    }
+}
+
 export const GetEvents = async (req, res) => {
     try {
         var events = await prisma.event.findMany({
@@ -10,12 +23,12 @@ export const GetEvents = async (req, res) => {
                 tags: true,
                 organizer: true,
                 location: {
-                    include : {
-                        regions : true
+                    include: {
+                        regions: true
                     }
                 }
             },
-            take : 10
+            take: 10
         });
         return res.status(200).json({
             status: true,
@@ -58,7 +71,7 @@ export const syncVolunteerConnector = async (req, res) => {
 }
 
 
-export const createEvent = async (req , res) => {
+export const createEvent = async (req, res) => {
     try {
         console.log(req.body);
     } catch (error) {

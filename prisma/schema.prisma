@@ -21,6 +21,7 @@ model User {
   address   Address?
   otps      OTP[]
   gender    Gender? 
+  events    Event[]
 }
 
 
@@ -68,6 +69,7 @@ model Event {
   legacyId    String?
   updatedAt   DateTime  @updatedAt
   createdAt   DateTime  @default(now())
+  joinedBy    User[]
 }
 
 model Source {
