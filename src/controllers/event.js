@@ -31,6 +31,33 @@ export const joinEvent = async (req, res) => {
         })
     }
 }
+export const exitEvent = async (req, res) => {
+    try {
+        var { eventId } = req.body;
+        await prisma.event.update({
+            where : {
+                uuid : eventId
+            },
+            data : {
+                joinedBy : {
+                    disconnect : {
+                        uuid : req.user.uuid
+                    }
+                }
+            }
+        });
+        return res.status(200).json({
+            status : true,
+            message : "Event Exited Successfully!"
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(422).json({
+            status: false,
+            message: error.message
+        })
+    }
+}
 
 export const GetEvents = async (req, res) => {
     try {

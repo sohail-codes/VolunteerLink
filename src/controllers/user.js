@@ -214,30 +214,69 @@ export const getUser = async (req, res) => {
 // Update user by UUID
 export const updateUser = async (req, res) => {
     try {
-        const { first, last, dob, gender } = req.body;
+        const { first, last, dob, gender , phone} = req.body;
 
         const user = await prisma.user.update({
-            where: { id : req.user.id },
-            data: { first, last, dob: moment(dob, "DD/MM/YYYY").startOf('D').toDate(), gender }
+            where: { id: req.user.id },
+            data: { first, last, dob: moment(dob, "DD/MM/YYYY").startOf('D').toDate(), gender , phone }
         });
+        // if (address)
+        // {
+        //     await prisma.address.upsert({
+        //         where : {
+        //             user : {
+        //                 id : req.user.id
+        //             }
+        //         },
+        //         update : {
+        //             ...address
+        //         }
+        //     })
+        // }
         delete user.id;
         delete user.password;
         res.json(user);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(422).json({ message: error.message, status : false });
     }
 };
+
+export const setPassword = async (req, res) => {
+    try {
+        const { password} = req.body;
+        if (!password || password.length < 3)
+        {
+            return res.status(422).json({
+                status : false,
+                message : "Enter a valid password!"
+            })
+        }
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await prisma.user.update({
+            where: { id: req.user.id },
+            data: { password : hashedPassword }
+        });
+        res.json({
+            status : true,
+            message : "Password successfully set!"
+        });
+    } catch (error) {
+        res.status(422).json({ message : error.message, status : false });
+    }
+};
+
+
 
 // Delete user by UUID
-export const deleteUser = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await prisma.user.delete({
-            where: { id }
-        });
+// export const deleteUser = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         await prisma.user.delete({
+//             where: { id }
+//         });
 
-        res.json({ message: "User deleted successfully" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
+//         res.json({ message: "User deleted successfully" });
+//     } catch (error) {
+//         res.status(500).json({ error: error.message });
+//     }
+// };

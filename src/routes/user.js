@@ -8,6 +8,8 @@ const UserRoutes = Router();
 
 UserRoutes.get('/me' , authMiddleware, getUser);
 UserRoutes.post('/me' , authMiddleware, updateUser);
+// UserRoutes.post('/password/' , authMiddleware, updatePassword);
+
 // UserRoutes.post('/', createAddress);
 // UserRoutes.get('/', getAddresses);
 // UserRoutes.get('/:uuid', getAddress);
