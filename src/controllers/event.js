@@ -8,20 +8,20 @@ export const joinEvent = async (req, res) => {
     try {
         var { eventId } = req.body;
         await prisma.event.update({
-            where : {
-                uuid : eventId
+            where: {
+                uuid: eventId
             },
-            data : {
-                joinedBy : {
-                    connect : {
-                        uuid : req.user.uuid
+            data: {
+                joinedBy: {
+                    connect: {
+                        uuid: req.user.uuid
                     }
                 }
             }
         });
         return res.status(200).json({
-            status : true,
-            message : "Event Joined Successfully!"
+            status: true,
+            message: "Event Joined Successfully!"
         })
     } catch (error) {
         console.log(error);
@@ -35,20 +35,20 @@ export const exitEvent = async (req, res) => {
     try {
         var { eventId } = req.body;
         await prisma.event.update({
-            where : {
-                uuid : eventId
+            where: {
+                uuid: eventId
             },
-            data : {
-                joinedBy : {
-                    disconnect : {
-                        uuid : req.user.uuid
+            data: {
+                joinedBy: {
+                    disconnect: {
+                        uuid: req.user.uuid
                     }
                 }
             }
         });
         return res.status(200).json({
-            status : true,
-            message : "Event Exited Successfully!"
+            status: true,
+            message: "Event Exited Successfully!"
         })
     } catch (error) {
         console.log(error);
@@ -61,7 +61,20 @@ export const exitEvent = async (req, res) => {
 
 export const GetEvents = async (req, res) => {
     try {
+        var { search } = req.query;
+        var query = {};
+        if (search)
+        {
+            query = {
+                title : {
+                    contains : search
+                }
+            }
+        }
         var events = await prisma.event.findMany({
+            where : {
+                ...query
+            },
             include: {
                 tags: true,
                 organizer: true,
@@ -87,11 +100,22 @@ export const GetEvents = async (req, res) => {
 }
 export const joinedEvents = async (req, res) => {
     try {
+        var { search } = req.query;
+        var query = {};
+        if (search)
+        {
+            query = {
+                title : {
+                    contains : search
+                }
+            }
+        }
         var events = await prisma.event.findMany({
-            where : {
-                joinedBy : {
-                    some : {
-                        uuid : req.user.uuid
+            where: {
+                ...query,
+                joinedBy: {
+                    some: {
+                        uuid: req.user.uuid
                     }
                 }
             },
