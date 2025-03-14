@@ -21,13 +21,14 @@ model User {
   updatedAt DateTime @updatedAt
   address   Address?
   otps      OTP[]
-  gender    Gender? 
+  gender    Gender   @default(unspecified)
   events    Event[]
 }
 
 enum Gender {
   male
   female
+  unspecified
 }
 
 model OTP {
