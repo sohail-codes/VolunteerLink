@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, loginUser, verifyOtp, resendOTP, setPassword } from '../controllers/user.js';
+import { createUser, loginUser, verifyOtp, resendOTP, setPassword , deleteAccount} from '../controllers/user.js';
 import { authMiddleware } from '../middlewares/auth.js';
 
 
@@ -11,5 +11,6 @@ AuthRoutes.post('/register', createUser);
 AuthRoutes.post('/otp/verify', verifyOtp);
 AuthRoutes.post('/otp/resend', resendOTP);
 AuthRoutes.post('/password/reset', authMiddleware, setPassword);
+AuthRoutes.post('/account/delete', authMiddleware, deleteAccount);
 
 export default AuthRoutes;

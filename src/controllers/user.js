@@ -268,15 +268,14 @@ export const setPassword = async (req, res) => {
 
 
 // Delete user by UUID
-// export const deleteUser = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         await prisma.user.delete({
-//             where: { id }
-//         });
+export const deleteAccount = async (req, res) => {
+    try {
+        await prisma.user.delete({
+            where: { id : req.user.id }
+        });
 
-//         res.json({ message: "User deleted successfully" });
-//     } catch (error) {
-//         res.status(500).json({ error: error.message });
-//     }
-// };
+        res.json({ message: "User account deleted successfully!" , status : true});
+    } catch (error) {
+        res.status(422).json({ error: error.message , status : false});
+    }
+};
