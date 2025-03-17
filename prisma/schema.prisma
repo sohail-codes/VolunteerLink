@@ -23,6 +23,7 @@ model User {
   otps      OTP[]
   gender    Gender   @default(unspecified)
   events    Event[]
+  additionalInfo Json? 
 }
 
 enum Gender {

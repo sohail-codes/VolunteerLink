@@ -198,7 +198,7 @@ export const getUsers = async (req, res) => {
         });
         res.json(users);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(422).json({ error: error.message });
     }
 };
 
@@ -214,11 +214,10 @@ export const getUser = async (req, res) => {
 // Update user by UUID
 export const updateUser = async (req, res) => {
     try {
-        const { first, last, dob, gender , phone} = req.body;
-
+        const { first, last, dob, gender , phone, additionalInfo} = req.body;
         const user = await prisma.user.update({
             where: { id: req.user.id },
-            data: { first, last, dob: moment(dob, "DD/MM/YYYY").startOf('D').toDate(), gender , phone }
+            data: { first, last, dob: moment(dob, "DD/MM/YYYY").startOf('D').toDate(), gender , phone , additionalInfo : {...req.user.additonalInfo , ...additionalInfo}}
         });
         // if (address)
         // {
