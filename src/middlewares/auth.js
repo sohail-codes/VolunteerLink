@@ -2,6 +2,8 @@ import prisma from "../client.js";
 import jwt from 'jsonwebtoken';
 
 
+
+
 export const authMiddleware = async (req, res, next) => {
     try {
         var token = req.headers.authorization.split(" ")[1];
