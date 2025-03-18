@@ -143,11 +143,12 @@ export const verifyOtp = async (req, res) => {
 // Create a new user with hashed password
 export const createUser = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, role } = req.body;
 
-        var existing = await prisma.user.findUnique({
+        var existing = await prisma.user.findFirst({
             where: {
-                email: email
+                email: email,
+                role: role
             }
         });
         if (existing) {
@@ -160,7 +161,8 @@ export const createUser = async (req, res) => {
         const user = await prisma.user.create({
             data: {
                 email,
-                password: hashedPassword
+                password: hashedPassword,
+                role: role
             }
         });
         await sendOTP(user);
@@ -173,10 +175,10 @@ export const createUser = async (req, res) => {
 // Authenticate user (login)
 export const loginUser = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, role } = req.body;
 
-        const user = await prisma.user.findUnique({
-            where: { email }
+        const user = await prisma.user.findFirst({
+            where: { email, role }
         });
 
         if (!user) return res.status(404).json({ status: false, message: "User not found" });
@@ -214,53 +216,64 @@ export const getUser = async (req, res) => {
 // Update user by UUID
 export const updateUser = async (req, res) => {
     try {
-        const { first, last, dob, gender , phone, additionalInfo} = req.body;
+        const { first, last, dob, gender, phone, additionalInfo, avatar } = req.body;
+        var dataFields = {};
+        if (first) {
+            dataFields.first = first;
+        }
+        if (last) {
+            dataFields.last = last;
+        }
+        if (dob) {
+            dataFields.dob = moment(dob, "DD/MM/YYYY").startOf('D').toDate();
+        }
+        if (gender) {
+            dataFields.gender = gender
+        }
+        if (phone) {
+            dataFields.phone = phone
+        }
+        if (additionalInfo) {
+            dataFields.additionalInfo = { ...req.user.additonalInfo, ...additionalInfo }
+        }
+        if (avatar) {
+            dataFields.avatar = avatar;
+        }
         const user = await prisma.user.update({
             where: { id: req.user.id },
-            data: { first, last, dob: moment(dob, "DD/MM/YYYY").startOf('D').toDate(), gender , phone , additionalInfo : {...req.user.additonalInfo , ...additionalInfo}}
+            data: dataFields,
+            include : {
+                address : true
+            }
         });
-        // if (address)
-        // {
-        //     await prisma.address.upsert({
-        //         where : {
-        //             user : {
-        //                 id : req.user.id
-        //             }
-        //         },
-        //         update : {
-        //             ...address
-        //         }
-        //     })
-        // }
         delete user.id;
         delete user.password;
         res.json(user);
     } catch (error) {
-        res.status(422).json({ message: error.message, status : false });
+        res.status(422).json({ message: error.message, status: false });
     }
 };
 
 export const setPassword = async (req, res) => {
     try {
-        const { password} = req.body;
-        if (!password || password.length < 3)
-        {
+        const { password } = req.body;
+        if (!password || password.length < 3) {
             return res.status(422).json({
-                status : false,
-                message : "Enter a valid password!"
+                status: false,
+                message: "Enter a valid password!"
             })
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await prisma.user.update({
             where: { id: req.user.id },
-            data: { password : hashedPassword }
+            data: { password: hashedPassword }
         });
         res.json({
-            status : true,
-            message : "Password successfully set!"
+            status: true,
+            message: "Password successfully set!"
         });
     } catch (error) {
-        res.status(422).json({ message : error.message, status : false });
+        res.status(422).json({ message: error.message, status: false });
     }
 };
 
@@ -270,11 +283,11 @@ export const setPassword = async (req, res) => {
 export const deleteAccount = async (req, res) => {
     try {
         await prisma.user.delete({
-            where: { id : req.user.id }
+            where: { id: req.user.id }
         });
 
-        res.json({ message: "User account deleted successfully!" , status : true});
+        res.json({ message: "User account deleted successfully!", status: true });
     } catch (error) {
-        res.status(422).json({ error: error.message , status : false});
+        res.status(422).json({ error: error.message, status: false });
     }
 };

@@ -8,13 +8,13 @@ export const createAddress = async (req, res) => {
         const { userId, street, city, state, zipCode, country } = req.body;
 
         const address = await prisma.address.create({
-            data: { 
-                userId, 
-                street, 
-                city, 
-                state, 
-                zipCode, 
-                country 
+            data: {
+                userId,
+                street,
+                city,
+                state,
+                zipCode,
+                country
             }
         });
         res.status(201).json(address);
@@ -55,12 +55,17 @@ export const getAddress = async (req, res) => {
 // Update an address by UUID
 export const updateAddress = async (req, res) => {
     try {
-        const { id } = req.params;
         const { street, city, state, zipCode, country } = req.body;
-
-        const updatedAddress = await prisma.address.update({
-            where: { id },
-            data: { street, city, state, zipCode, country }
+        const updatedAddress = await prisma.address.upsert({
+            where: {
+                userId: req.user.id
+            },
+            update: { street, city, state, zipCode, country },
+            create : { street, city, state, zipCode, country, user : {
+                connect : {
+                    uuid : req.user.uuid
+                }
+            } }
         });
 
         res.json(updatedAddress);
