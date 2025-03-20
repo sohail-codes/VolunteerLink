@@ -84,7 +84,10 @@ export const GetEvents = async (req, res) => {
                     }
                 }
             },
-            take: 10
+            take: 10,
+            orderBy : {
+                createdAt : 'desc'
+            }
         });
         return res.status(200).json({
             status: true,
@@ -128,7 +131,10 @@ export const joinedEvents = async (req, res) => {
                     }
                 }
             },
-            take: 10
+            take: 10,
+            orderBy : {
+                createdAt : 'desc'
+            }
         });
         return res.status(200).json({
             status: true,
@@ -174,6 +180,60 @@ export const syncVolunteerConnector = async (req, res) => {
 export const createEvent = async (req, res) => {
     try {
         console.log(req.body);
+        const eventData = {
+            title: req.body[0],
+            description: req.body[1],
+            date: req.body[2],
+            startDate: new Date(req.body[2]),
+            endDate: new Date(req.body[3]),
+            url: req.body[4],
+        };
+
+        // Fetch or create location
+        let location = null;
+        if (!location) {
+            location = await prisma.location.create({ 
+                data: { 
+                    locationType: "REGIONAL", 
+                    longitude: 0, 
+                    latitude: 0,
+                    regions : {
+                        connectOrCreate : {
+                            where : {
+                                name : req.body[5]
+                            },
+                            create : {
+                                name : req.body[5]
+                            }
+                        }
+                    }
+                } 
+            });
+        }
+        eventData.locationId = location.id;
+
+        // Fetch or create organizer
+        let organizer = await prisma.organizer.findFirst({ where: { name: req.body[6] } });
+        if (!organizer) {
+            organizer = await prisma.organizer.create({ data: { name: req.body[6] , url  : req.body[7]} });
+        }
+        eventData.organizerId = organizer.id;
+
+        // Fetch or create source if applicable
+        // let source = null;
+        // if (req.body[7]) {
+        //     source = await prisma.source.findFirst({ where: { name: req.body[7] } });
+        //     if (!source) {
+        //         source = await prisma.source.create({ data: { name: req.body[7] } });
+        //     }
+        //     eventData.sourceId = source.id;
+        // }
+
+        // Create event
+        const event = await prisma.event.create({ data: eventData });
+        return res.status(200).json({
+            status : true, message : "Event Created"
+        })
     } catch (error) {
         console.log(error);
     }
