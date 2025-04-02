@@ -8,23 +8,39 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @unique @default(autoincrement())
-  uuid      String   @unique @default(uuid())
-  avatar    String?
-  first     String?
-  last      String?
-  phone     String?
-  dob       DateTime?
-  email     String   
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  address   Address?
-  otps      OTP[]
-  gender    Gender   @default(unspecified)
-  events    Event[]
-  additionalInfo Json? 
-  role      userRole @default(user)
+  id             Int                  @id @unique @default(autoincrement())
+  uuid           String               @unique @default(uuid())
+  avatar         String?
+  first          String?
+  last           String?
+  phone          String?
+  dob            DateTime?
+  email          String
+  password       String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  address        Address?
+  otps           OTP[]
+  gender         Gender               @default(unspecified)
+  events         Event[]
+  additionalInfo Json?
+  role           userRole             @default(user)
+  participation  EventParticipation[]
+}
+
+model EventParticipation {
+  id      Int                 @id @unique @default(autoincrement())
+  user    User                @relation(fields: [userId], references: [id])
+  userId  Int
+  status  participationStatus @default(INREVIEW)
+  event   Event               @relation(fields: [eventId], references: [id])
+  eventId Int
+}
+
+enum participationStatus {
+  INREVIEW
+  ACCEPTED
+  REJECTED
 }
 
 enum userRole {
@@ -59,26 +75,27 @@ model Address {
 }
 
 model Event {
-  id          Int       @id @unique @default(autoincrement())
-  uuid        String    @unique @default(uuid())
-  title       String
-  description String    @db.LongText
-  date        String
-  startDate   DateTime?
-  endDate     DateTime?
-  tags        Tag[]
-  data        Json?     @default("{}")
-  url         String?
-  organizer   Organizer @relation(fields: [organizerId], references: [id])
-  organizerId Int
-  location    Location  @relation(fields: [locationId], references: [id])
-  locationId  Int
-  source      Source?   @relation(fields: [sourceId], references: [id])
-  sourceId    Int?
-  legacyId    String?
-  updatedAt   DateTime  @updatedAt
-  createdAt   DateTime  @default(now())
-  joinedBy    User[]
+  id            Int                  @id @unique @default(autoincrement())
+  uuid          String               @unique @default(uuid())
+  title         String
+  description   String               @db.LongText
+  date          String
+  startDate     DateTime?
+  endDate       DateTime?
+  tags          Tag[]
+  data          Json?                @default("{}")
+  url           String?
+  organizer     Organizer            @relation(fields: [organizerId], references: [id])
+  organizerId   Int
+  location      Location             @relation(fields: [locationId], references: [id])
+  locationId    Int
+  source        Source?              @relation(fields: [sourceId], references: [id])
+  sourceId      Int?
+  legacyId      String?
+  updatedAt     DateTime             @updatedAt
+  createdAt     DateTime             @default(now())
+  joinedBy      User[]
+  participation EventParticipation[]
 }
 
 model Source {

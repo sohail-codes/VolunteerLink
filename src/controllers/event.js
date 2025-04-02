@@ -7,18 +7,42 @@ import prisma from "../client.js";
 export const joinEvent = async (req, res) => {
     try {
         var { eventId } = req.body;
-        await prisma.event.update({
+        const alreadyJoined = await prisma.eventParticipation.findFirst({
             where: {
-                uuid: eventId
-            },
-            data: {
-                joinedBy: {
-                    connect: {
-                        uuid: req.user.uuid
-                    }
+                user: {
+                    uuid: req.user.uuid
+                },
+                event: {
+                    uuid: eventId
                 }
             }
         });
+        if (alreadyJoined) {
+            await prisma.eventParticipation.update({
+                where: {
+                    id: alreadyJoined.id
+                },
+                data: {
+                    status: 'INREVIEW'
+                }
+            })
+        } else {
+            await prisma.eventParticipation.create({
+                data: {
+                    status: 'INREVIEW',
+                    user: {
+                        connect: {
+                            uuid: req.user.uuid
+                        }
+                    },
+                    event: {
+                        connect: {
+                            uuid: eventId
+                        }
+                    },
+                }
+            })
+        }
         return res.status(200).json({
             status: true,
             message: "Event Joined Successfully!"
@@ -34,15 +58,13 @@ export const joinEvent = async (req, res) => {
 export const exitEvent = async (req, res) => {
     try {
         var { eventId } = req.body;
-        await prisma.event.update({
+        await prisma.eventParticipation.deleteMany({
             where: {
-                uuid: eventId
-            },
-            data: {
-                joinedBy: {
-                    disconnect: {
-                        uuid: req.user.uuid
-                    }
+                user: {
+                    uuid: req.user.uuid
+                },
+                event: {
+                    uuid: eventId
                 }
             }
         });
@@ -58,21 +80,81 @@ export const exitEvent = async (req, res) => {
         })
     }
 }
+export const getParticipations = async (req, res) => {
+    try {
+        var { id } = req.params;
+        var participants = await prisma.eventParticipation.findMany({
+            where: {
+                event: {
+                    uuid: id
+                }
+            },
+            select: {
+                user: {
+                    select: {
+                        uuid: true,
+                        first: true,
+                        avatar: true
+                    }
+                },
+                status: true
+            }
+        });
+        return res.status(200).json({
+            status: true,
+            data: participants
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(422).json({
+            status: true,
+            message: error.message
+        })
+    }
+}
 
+
+export const updateParticipation = async (req, res) => {
+    try {
+        var { eventId, userId, status } = req.body;
+        await prisma.eventParticipation.updateMany({
+            where : {
+                user : {
+                    uuid : userId
+                },
+                event : {
+                    uuid : eventId
+                }
+            },
+            data : {
+                status : status
+            }
+        });
+        return res.status(200).json({
+            status : true,
+            message : "Status Updated"
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(422).json({
+            status: true,
+            message: error.message
+        })
+    }
+}
 export const GetEvents = async (req, res) => {
     try {
         var { search } = req.query;
         var query = {};
-        if (search)
-        {
+        if (search) {
             query = {
-                title : {
-                    contains : search
+                title: {
+                    contains: search
                 }
             }
         }
         var events = await prisma.event.findMany({
-            where : {
+            where: {
                 ...query
             },
             include: {
@@ -82,12 +164,24 @@ export const GetEvents = async (req, res) => {
                     include: {
                         regions: true
                     }
+                },
+                participation: {
+                    where: {
+                        user: {
+                            uuid: req.user.uuid
+                        }
+                    }
                 }
             },
             take: 10,
-            orderBy : {
-                createdAt : 'desc'
+            orderBy: {
+                createdAt: 'desc'
             }
+        });
+        events = events.map((item) => {
+            item.participationStatus = item.participation.length ? item.participation[0].status : "NOTJOINED"
+            delete item.participation;
+            return item;
         });
         return res.status(200).json({
             status: true,
@@ -100,25 +194,28 @@ export const GetEvents = async (req, res) => {
             message: error.message
         })
     }
-}
+};
+
+
 export const joinedEvents = async (req, res) => {
     try {
         var { search } = req.query;
         var query = {};
-        if (search)
-        {
+        if (search) {
             query = {
-                title : {
-                    contains : search
+                title: {
+                    contains: search
                 }
             }
         }
         var events = await prisma.event.findMany({
             where: {
                 ...query,
-                joinedBy: {
+                participation: {
                     some: {
-                        uuid: req.user.uuid
+                        user: {
+                            uuid: req.user.uuid
+                        }
                     }
                 }
             },
@@ -129,12 +226,24 @@ export const joinedEvents = async (req, res) => {
                     include: {
                         regions: true
                     }
+                },
+                participation: {
+                    where: {
+                        user: {
+                            uuid: req.user.uuid
+                        }
+                    }
                 }
             },
             take: 10,
-            orderBy : {
-                createdAt : 'desc'
+            orderBy: {
+                createdAt: 'desc'
             }
+        });
+        events = events.map((item) => {
+            item.participationStatus = item.participation.length ? item.participation[0].status : "NOTJOINED"
+            delete item.participation;
+            return item;
         });
         return res.status(200).json({
             status: true,
@@ -192,22 +301,22 @@ export const createEvent = async (req, res) => {
         // Fetch or create location
         let location = null;
         if (!location) {
-            location = await prisma.location.create({ 
-                data: { 
-                    locationType: "REGIONAL", 
-                    longitude: 0, 
+            location = await prisma.location.create({
+                data: {
+                    locationType: "REGIONAL",
+                    longitude: 0,
                     latitude: 0,
-                    regions : {
-                        connectOrCreate : {
-                            where : {
-                                name : req.body[5]
+                    regions: {
+                        connectOrCreate: {
+                            where: {
+                                name: req.body[5]
                             },
-                            create : {
-                                name : req.body[5]
+                            create: {
+                                name: req.body[5]
                             }
                         }
                     }
-                } 
+                }
             });
         }
         eventData.locationId = location.id;
@@ -215,7 +324,7 @@ export const createEvent = async (req, res) => {
         // Fetch or create organizer
         let organizer = await prisma.organizer.findFirst({ where: { name: req.body[6] } });
         if (!organizer) {
-            organizer = await prisma.organizer.create({ data: { name: req.body[6] , url  : req.body[7]} });
+            organizer = await prisma.organizer.create({ data: { name: req.body[6], url: req.body[7] } });
         }
         eventData.organizerId = organizer.id;
 
@@ -232,7 +341,7 @@ export const createEvent = async (req, res) => {
         // Create event
         const event = await prisma.event.create({ data: eventData });
         return res.status(200).json({
-            status : true, message : "Event Created"
+            status: true, message: "Event Created"
         })
     } catch (error) {
         console.log(error);
