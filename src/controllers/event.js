@@ -118,21 +118,21 @@ export const updateParticipation = async (req, res) => {
     try {
         var { eventId, userId, status } = req.body;
         await prisma.eventParticipation.updateMany({
-            where : {
-                user : {
-                    uuid : userId
+            where: {
+                user: {
+                    uuid: userId
                 },
-                event : {
-                    uuid : eventId
+                event: {
+                    uuid: eventId
                 }
             },
-            data : {
-                status : status
+            data: {
+                status: status
             }
         });
         return res.status(200).json({
-            status : true,
-            message : "Status Updated"
+            status: true,
+            message: "Status Updated"
         })
     } catch (error) {
         console.log(error);
@@ -156,6 +156,60 @@ export const GetEvents = async (req, res) => {
         var events = await prisma.event.findMany({
             where: {
                 ...query
+            },
+            include: {
+                tags: true,
+                organizer: true,
+                location: {
+                    include: {
+                        regions: true
+                    }
+                },
+                participation: {
+                    where: {
+                        user: {
+                            uuid: req.user.uuid
+                        }
+                    }
+                }
+            },
+            take: 10,
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+        events = events.map((item) => {
+            item.participationStatus = item.participation.length ? item.participation[0].status : "NOTJOINED"
+            delete item.participation;
+            return item;
+        });
+        return res.status(200).json({
+            status: true,
+            data: events
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(422).json({
+            status: false,
+            message: error.message
+        })
+    }
+};
+export const ngoEvents = async (req, res) => {
+    try {
+        var { search } = req.query;
+        var query = {};
+        if (search) {
+            query = {
+                title: {
+                    contains: search
+                }
+            }
+        }
+        var events = await prisma.event.findMany({
+            where: {
+                ...query,
+                creatorId : req.user.id
             },
             include: {
                 tags: true,
@@ -340,6 +394,67 @@ export const createEvent = async (req, res) => {
 
         // Create event
         const event = await prisma.event.create({ data: eventData });
+        return res.status(200).json({
+            status: true, message: "Event Created"
+        })
+    } catch (error) {
+        console.log(error);
+    }
+}
+export const createEventNGO = async (req, res) => {
+    try {
+        var { title, description, startDate, endDate, url , location} = req.body;
+        const eventData = {
+            title: title,
+            description: description,
+            date: startDate,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            url: url,
+        };
+
+        // Fetch or create location
+        let locationEntry = null;
+        if (!locationEntry) {
+            locationEntry = await prisma.location.create({
+                data: {
+                    locationType: "REGIONAL",
+                    longitude: 0,
+                    latitude: 0,
+                    regions: {
+                        connectOrCreate: {
+                            where: {
+                                name: location
+                            },
+                            create: {
+                                name: location
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        eventData.locationId = locationEntry.id;
+
+        // Fetch or create organizer
+        let organizer = await prisma.organizer.findFirst({ where: { name: req.user.first } });
+        if (!organizer) {
+            organizer = await prisma.organizer.create({ data: { name: req.user.first, url: url } });
+        }
+        eventData.organizerId = organizer.id;
+
+        // Fetch or create source if applicable
+        // let source = null;
+        // if (req.body[7]) {
+        //     source = await prisma.source.findFirst({ where: { name: req.body[7] } });
+        //     if (!source) {
+        //         source = await prisma.source.create({ data: { name: req.body[7] } });
+        //     }
+        //     eventData.sourceId = source.id;
+        // }
+
+        // Create event
+        await prisma.event.create({ data: {...eventData, creatorId : req.user.id} });
         return res.status(200).json({
             status: true, message: "Event Created"
         })

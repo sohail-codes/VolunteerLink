@@ -94,7 +94,8 @@ model Event {
   legacyId      String?
   updatedAt     DateTime             @updatedAt
   createdAt     DateTime             @default(now())
-  joinedBy      User[]
+  createdBy     User?                @relation(fields: [creatorId], references: [id])
+  creatorId     Int?
   participation EventParticipation[]
 }
 
