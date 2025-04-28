@@ -15,7 +15,7 @@ model User {
   last           String?
   phone          String?
   dob            DateTime?
-  email          String
+  email          String               @unique
   password       String
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt

@@ -1,5 +1,6 @@
 import axios from "axios";
 import prisma from "../client.js";
+import { skip } from "@prisma/client/runtime/library";
 
 
 
@@ -144,7 +145,7 @@ export const updateParticipation = async (req, res) => {
 }
 export const GetEvents = async (req, res) => {
     try {
-        var { search } = req.query;
+        var { search, page } = req.query;
         var query = {};
         if (search) {
             query = {
@@ -152,6 +153,10 @@ export const GetEvents = async (req, res) => {
                     contains: search
                 }
             }
+        }
+        var pagination = {
+            skip: page ? (page - 1) * 10 : 0,
+            take: 10
         }
         var events = await prisma.event.findMany({
             where: {
@@ -173,7 +178,7 @@ export const GetEvents = async (req, res) => {
                     }
                 }
             },
-            take: 10,
+            ...pagination,
             orderBy: {
                 createdAt: 'desc'
             }
@@ -197,7 +202,7 @@ export const GetEvents = async (req, res) => {
 };
 export const ngoEvents = async (req, res) => {
     try {
-        var { search } = req.query;
+        var { search, page } = req.query;
         var query = {};
         if (search) {
             query = {
@@ -205,6 +210,10 @@ export const ngoEvents = async (req, res) => {
                     contains: search
                 }
             }
+        }
+        var pagination = {
+            skip: page ? (page - 1) * 10 : 0,
+            take: 10
         }
         var events = await prisma.event.findMany({
             where: {
@@ -227,7 +236,7 @@ export const ngoEvents = async (req, res) => {
                     }
                 }
             },
-            take: 10,
+            ...pagination,
             orderBy: {
                 createdAt: 'desc'
             }
@@ -253,7 +262,7 @@ export const ngoEvents = async (req, res) => {
 
 export const joinedEvents = async (req, res) => {
     try {
-        var { search } = req.query;
+        var { search, page } = req.query;
         var query = {};
         if (search) {
             query = {
@@ -261,6 +270,10 @@ export const joinedEvents = async (req, res) => {
                     contains: search
                 }
             }
+        }
+        var pagination = {
+            skip: page ? (page - 1) * 10 : 0,
+            take: 10
         }
         var events = await prisma.event.findMany({
             where: {
@@ -289,7 +302,7 @@ export const joinedEvents = async (req, res) => {
                     }
                 }
             },
-            take: 10,
+            ...pagination,
             orderBy: {
                 createdAt: 'desc'
             }

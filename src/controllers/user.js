@@ -30,15 +30,13 @@ export const sendMail = async (to, subject, text = null, html = null) => {
                 pass: process.env.SMTP_PASSWORD,
             },
         });
-
-
         await transporter.sendMail({
             from: `"Volunteer Link" <${process.env.SMTP_USERNAME}>`, // sender address
             to: to, // list of receivers
             subject: subject, // Subject line
             text: text, // plain text body
             html: html, // html body
-        })
+        });
     } catch (error) {
         console.log(error)
     }
@@ -52,7 +50,7 @@ const addMinutes = (date, minutes) => {
 export const resendOTP = async (req, res) => {
     try {
         var { email } = req.body;
-        const user = await prisma.user.findUnique({
+        const user = await prisma.user.findFirst({
             where: { email },
             include: {
                 address: true
@@ -264,7 +262,7 @@ export const setPassword = async (req, res) => {
             })
         }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await prisma.user.update({
+        await prisma.user.update({
             where: { id: req.user.id },
             data: { password: hashedPassword }
         });
@@ -285,7 +283,6 @@ export const deleteAccount = async (req, res) => {
         await prisma.user.delete({
             where: { id: req.user.id }
         });
-
         res.json({ message: "User account deleted successfully!", status: true });
     } catch (error) {
         res.status(422).json({ error: error.message, status: false });
