@@ -15,7 +15,7 @@ model User {
   last           String?
   phone          String?
   dob            DateTime?
-  email          String               @unique
+  email          String               
   password       String
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
@@ -30,10 +30,10 @@ model User {
 
 model EventParticipation {
   id      Int                 @id @unique @default(autoincrement())
-  user    User                @relation(fields: [userId], references: [id])
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId  Int
   status  participationStatus @default(INREVIEW)
-  event   Event               @relation(fields: [eventId], references: [id])
+  event   Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
 }
 
@@ -70,7 +70,7 @@ model Address {
   state   String
   zipCode String
   country String
-  user    User   @relation(fields: [userId], references: [id])
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId  Int    @unique
 }
 
@@ -85,7 +85,7 @@ model Event {
   tags          Tag[]
   data          Json?                @default("{}")
   url           String?
-  organizer     Organizer            @relation(fields: [organizerId], references: [id])
+  organizer     Organizer            @relation(fields: [organizerId], references: [id], onDelete: NoAction)
   organizerId   Int
   location      Location             @relation(fields: [locationId], references: [id])
   locationId    Int
