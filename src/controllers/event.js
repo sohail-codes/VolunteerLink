@@ -351,6 +351,70 @@ export const syncVolunteerConnector = async (req, res) => {
         })
     }
 }
+export const syncEventbrite = async (req, res) => {
+    try {
+        const { events, pagination } = req.body;
+        
+        if (!events || !Array.isArray(events)) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid request format: events array is required"
+            });
+        }
+
+        // Process events in chunks of 10 to avoid overwhelming the database
+        const CHUNK_SIZE = 10;
+        const chunks = [];
+        for (let i = 0; i < events.length; i += CHUNK_SIZE) {
+            chunks.push(events.slice(i, i + CHUNK_SIZE));
+        }
+
+        const results = {
+            processed: 0,
+            failed: 0,
+            errors: []
+        };
+
+        // Process each chunk
+        for (const chunk of chunks) {
+            try {
+                await saveEventbriteEvents({ events: chunk });
+                results.processed += chunk.length;
+            } catch (error) {
+                console.error('Error processing chunk:', error);
+                results.failed += chunk.length;
+                results.errors.push({
+                    chunk: chunk.length,
+                    error: error.message
+                });
+            }
+        }
+
+        return res.status(200).json({
+            status: true,
+            data: {
+                pagination,
+                results,
+                message: `Successfully processed ${results.processed} events. Failed: ${results.failed}`
+            }
+        });
+    } catch (error) {
+        console.error('Sync Eventbrite Error:', error);
+        
+        // Handle specific error types
+        if (error.type === 'entity.too.large') {
+            return res.status(413).json({
+                status: false,
+                message: "Request payload too large. Please reduce the number of events or split into smaller requests."
+            });
+        }
+
+        return res.status(422).json({
+            status: false,
+            message: error.message || "An error occurred while processing the events"
+        });
+    }
+};
 
 
 export const createEvent = async (req, res) => {
@@ -554,6 +618,104 @@ const saveVolunteerEvents = async (events) => {
                         location: { connect: { id: location.id } },
                         source: { connect: { id: source.id } },
                         tags: { connect: tags.map(tag => ({ id: tag.id })) },
+                    },
+                });
+            });
+        }
+    }
+};
+
+const saveEventbriteEvents = async (data) => {
+    const source = await prisma.source.upsert({
+        where: { id: 2 },
+        update: {},
+        create: {
+            id: 2,
+            name: 'eventbrite',
+        },
+    });
+
+    for (const eventData of data.events) {
+        if (!await prisma.event.count({ where: { legacyId: eventData.id.toString(), source: { id: source.id } } })) {
+            await prisma.$transaction(async (tx) => {
+                // Handle Organizer
+                const organizerName = eventData.primary_organizer?.name || 'Unknown Organizer';
+                const organizer = await tx.organizer.upsert({
+                    where: { name: organizerName },
+                    update: {
+                        url: eventData.primary_organizer?.website_url || null,
+                        logo: eventData.primary_organizer?.image_id ? 
+                            `https://www.eventbritecdn.com/image/${eventData.primary_organizer.image_id}` : 
+                            null,
+                    },
+                    create: {
+                        name: organizerName,
+                        url: eventData.primary_organizer?.website_url || null,
+                        logo: eventData.primary_organizer?.image_id ? 
+                            `https://www.eventbritecdn.com/image/${eventData.primary_organizer.image_id}` : 
+                            null,
+                    },
+                });
+
+                // Handle Tags
+                const tagOperations = eventData.tags.map((tag) =>
+                    tx.tag.upsert({
+                        where: { name: tag.display_name },
+                        update: {},
+                        create: { name: tag.display_name },
+                    })
+                );
+                const tags = await Promise.all(tagOperations);
+
+                // Handle Location
+                const location = await tx.location.create({
+                    data: {
+                        locationType: "LOCAL",
+                        latitude: parseFloat(eventData.primary_venue.address.latitude) || 0,
+                        longitude: parseFloat(eventData.primary_venue.address.longitude) || 0,
+                        regions: {
+                            connectOrCreate: {
+                                where: { name: eventData.primary_venue.address.region },
+                                create: { name: eventData.primary_venue.address.region },
+                            },
+                        },
+                    },
+                });
+
+                // Parse dates
+                const startDate = new Date(`${eventData.start_date}T${eventData.start_time}`);
+                const endDate = new Date(`${eventData.end_date}T${eventData.end_time}`);
+
+                // Handle Event
+                await tx.event.create({
+                    data: {
+                        title: eventData.name,
+                        description: eventData.summary || '',
+                        date: `${eventData.start_date} - ${eventData.end_date}`,
+                        startDate,
+                        endDate,
+                        url: eventData.url,
+                        legacyId: eventData.id.toString(),
+                        organizer: { connect: { id: organizer.id } },
+                        location: { connect: { id: location.id } },
+                        source: { connect: { id: source.id } },
+                        tags: { connect: tags.map(tag => ({ id: tag.id })) },
+                        thumbnail: eventData.image?.url || null,
+                        data: {
+                            isOnline: eventData.is_online_event,
+                            status: eventData.status,
+                            timezone: eventData.timezone,
+                            ticketUrl: eventData.tickets_url,
+                            price: eventData.ticket_availability?.minimum_ticket_price?.major_value || '0',
+                            currency: eventData.ticket_availability?.minimum_ticket_price?.currency || 'USD',
+                            salesStatus: eventData.event_sales_status?.sales_status,
+                            salesStartDate: eventData.event_sales_status?.start_sales_date?.utc,
+                            salesEndDate: eventData.event_sales_status?.end_sales_date?.utc,
+                            venue: {
+                                name: eventData.primary_venue.name,
+                                address: eventData.primary_venue.address
+                            }
+                        }
                     },
                 });
             });

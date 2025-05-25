@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.js';
-import { GetEvents, syncVolunteerConnector, createEvent, joinEvent, joinedEvents, exitEvent, getParticipations, updateParticipation, createEventNGO , ngoEvents} from '../controllers/event.js';
+import { GetEvents, syncVolunteerConnector, createEvent, joinEvent, joinedEvents, exitEvent, getParticipations, updateParticipation, createEventNGO , ngoEvents, syncEventbrite} from '../controllers/event.js';
 
 
 const EventRoutes = Router();
@@ -9,6 +9,7 @@ EventRoutes.get('/upcoming/list', authMiddleware, GetEvents)
 EventRoutes.get('/joined/list', authMiddleware, joinedEvents)
 EventRoutes.get('/ngo/list', authMiddleware, ngoEvents)
 EventRoutes.get('/sync/volunteerconnector', syncVolunteerConnector);
+EventRoutes.post('/sync/eventbrite', syncEventbrite);
 EventRoutes.post('/create', createEvent);
 EventRoutes.post('/ngo/create', authMiddleware, createEventNGO);
 EventRoutes.post('/join', authMiddleware, joinEvent);

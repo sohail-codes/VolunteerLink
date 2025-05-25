@@ -97,6 +97,7 @@ model Event {
   createdBy     User?                @relation(fields: [creatorId], references: [id])
   creatorId     Int?
   participation EventParticipation[]
+  thumbnail     String?
 }
 
 model Source {
